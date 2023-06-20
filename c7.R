@@ -287,10 +287,93 @@ V(ontariopol)$community <- membership(communities)
 # how many communities
 length(unique(V(ontariopol)$community))
 
-# Comparing community modularity
+# Comparing modularity
+# louvain modularity
+modularity(ontariopol,
+           membership = V(ontariopol)$community,
+           weights = E(ontariopol)$weight)
 
+# political party modularity
+modularity(ontariopol,
+           membership = as.integer(as.factor(V(ontariopol)$party)),
+           weights = E(ontariopol)$weight)
 
+# Modularity is very similar...
 
+# visualize louvain communities
+set.seed(123)
+g1 <- ggraph(ontariopol, layout = "fr") +
+  geom_edge_link(color = "grey", alpha = 0.7) +
+  geom_node_point(size = 2, aes(color = as.factor(community)),
+                  show.legend = FALSE) +
+  theme_void()
 
+# visualize ground truth political party communities
+set.seed(123)
+g2 <- ggraph(ontariopol, layout = "fr") +
+  geom_edge_link(color = "grey", alpha = 0.7) +
+  geom_node_point(size = 2, aes(color = party),
+                  show.legend = FALSE) +
+  theme_void()
 
+# display side by side
+g1 + g2
+
+#' We see very similar community structures, indicating that the Louvain
+#' algorithm has done a good job of identifying political party alignment from
+#' the tweet activity of the politicians
+
+# Detecting politically aligned cliques on Twitter ====
+# get edgelist and vertex data
+ontariopol_edges <- read.csv(
+  "https://ona-book.org/data/ontariopol_edgelist.csv"
+)
+
+ontariopol_vertices <- read.csv(
+  "https://ona-book.org/data/ontariopol_vertices.csv"
+)
+
+# create undirected graph
+ontariopol <- igraph::graph_from_data_frame(
+  d = ontariopol_edges,
+  vertices = ontariopol_vertices,
+  directed = FALSE
+)
+
+ontariopol
+
+# Is the graph connected?
+is.connected(ontariopol) # YES!
+
+# get largest cliques
+cliques <- igraph::largest_cliques(ontariopol)
+cliques
+
+# 24 cliques of size 48
+
+# Visualizing clique 1!
+# create clique property
+V(ontariopol)$clique1 <- ifelse(
+  V(ontariopol) %in% cliques[[1]], 1, 0
+)
+
+# visualize clique
+set.seed(123)
+g1 <- ggraph(ontariopol, layout = "fr") +
+  geom_edge_link(color = "grey", alpha = 0.7) +
+  geom_node_point(size = 2, aes(color = as.factor(clique1)),
+                  show.legend = FALSE) +
+  theme_void()
+
+# visualize ground truth political parties
+set.seed(123)
+g2 <- ggraph(ontariopol, layout = "fr") +
+  geom_edge_link(color = "grey", alpha = 0.5) +
+  geom_node_point(size = 2, aes(color = party)) +
+  labs(color = "Party (Right hand graph)") +
+  theme_void()
+
+g1 + g2
+
+# Clique 1 is possibly a PCP clique
 #
